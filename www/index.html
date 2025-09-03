@@ -2,12 +2,13 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>Stress Fighter</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Nunito:wght@400;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.7.77/Tone.js"></script>
     <style>
         :root {
             --glow-cyan: 0 0 5px #06b6d4, 0 0 10px #06b6d4, 0 0 20px #06b6d4;
@@ -18,7 +19,9 @@
             font-family: 'Nunito', sans-serif;
             background: linear-gradient(135deg, #111827, #1f2937);
             color: #f0f0f0;
-            overscroll-behavior-y: contain;
+            overscroll-behavior: contain;
+            /* Safe area padding for mobile notches/status bars */
+            padding-top: env(safe-area-inset-top);
         }
         .font-pixel {
             font-family: 'Press Start 2P', cursive;
@@ -26,6 +29,12 @@
         .screen {
             opacity: 1;
             transition: opacity 0.3s ease-in-out;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
         }
         .screen.hidden {
             opacity: 0;
@@ -47,6 +56,9 @@
             border: 2px solid transparent;
             position: relative;
             overflow: hidden;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
         }
         .btn-modern:before {
             content: '';
@@ -64,6 +76,10 @@
         .btn-modern:hover {
             transform: translateY(-2px);
             box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        }
+        .btn-modern:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
         }
         .btn-primary {
             background-image: linear-gradient(to right, #2563eb, #3b82f6);
@@ -121,6 +137,20 @@
             border-radius: 16px;
             border: 2px solid #4b5563;
         }
+        .loader {
+            width: 24px;
+            height: 24px;
+            border: 3px solid #FFF;
+            border-bottom-color: transparent;
+            border-radius: 50%;
+            display: inline-block;
+            box-sizing: border-box;
+            animation: rotation 1s linear infinite;
+        }
+        @keyframes rotation {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
     </style>
 </head>
 <body class="w-full h-screen flex items-center justify-center p-4">
@@ -133,8 +163,9 @@
             <h1 class="font-pixel text-4xl md:text-6xl text-yellow-400 text-glow-yellow mb-4">Stress Fighter</h1>
             <p class="text-lg text-cyan-400 text-glow-cyan mb-8">Get a grip on chaos.</p>
             <div class="space-y-4">
-                <button onclick="showScreen('selectOpponentScreen')" class="btn-modern btn-primary w-64">Start Fight</button>
-                <button onclick="showScreen('dojoScreen')" class="btn-modern btn-secondary w-64">Enter Dojo</button>
+                <button onclick="playSound('click'); showScreen('selectOpponentScreen')" class="btn-modern btn-primary w-64">Start Fight</button>
+                <button onclick="playSound('click'); showScreen('dojoScreen')" class="btn-modern btn-secondary w-64">Enter Dojo</button>
+                <button onclick="playSound('click'); exitApp()" class="btn-modern btn-secondary w-64 bg-gray-700">Session Complete</button>
             </div>
         </div>
 
@@ -143,23 +174,23 @@
             <h2 class="font-pixel text-3xl md:text-4xl text-yellow-400 text-glow-yellow mb-6">Choose Your Opponent</h2>
             <p class="mb-8 text-cyan-400">What does your stress feel like?</p>
             <div class="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-4xl">
-                <div onclick="selectOpponent('anxiety')" class="opponent-card p-4 cursor-pointer">
+                <div onclick="playSound('click'); selectOpponent('anxiety')" class="opponent-card p-4 cursor-pointer">
                     <div class="monster-container h-32 flex items-center justify-center"></div>
                     <h3 class="font-pixel text-xl text-red-400 mt-4">Anxious Assassin</h3>
                     <p class="text-sm mt-2 text-gray-300">Racing thoughts & worry about the future.</p>
                 </div>
-                <div onclick="selectOpponent('burnout')" class="opponent-card p-4 cursor-pointer">
+                <div onclick="playSound('click'); selectOpponent('burnout')" class="opponent-card p-4 cursor-pointer">
                     <div class="monster-container h-32 flex items-center justify-center"></div>
                     <h3 class="font-pixel text-xl text-red-400 mt-4">Exhausted Brute</h3>
                     <p class="text-sm mt-2 text-gray-300">Heavy exhaustion & emotional depletion.</p>
                 </div>
-                <div onclick="selectOpponent('anger')" class="opponent-card p-4 cursor-pointer">
+                <div onclick="playSound('click'); selectOpponent('anger')" class="opponent-card p-4 cursor-pointer">
                     <div class="monster-container h-32 flex items-center justify-center"></div>
                     <h3 class="font-pixel text-xl text-red-400 mt-4">Raging Brawler</h3>
                     <p class="text-sm mt-2 text-gray-300">Frustration, irritation & explosive feelings.</p>
                 </div>
             </div>
-            <button onclick="showScreen('startScreen')" class="btn-modern btn-secondary mt-12">Back</button>
+            <button onclick="playSound('click'); showScreen('startScreen')" class="btn-modern btn-secondary mt-12">Back</button>
         </div>
 
         <!-- Screen: Arena -->
@@ -183,9 +214,8 @@
             </div>
 
             <!-- Characters -->
-            <div class="flex justify-between items-center bg-gray-900/50 p-2 md:p-6 rounded-lg border-2 border-gray-700 mb-4 h-64 md:h-80">
+            <div class="flex-grow flex justify-between items-center bg-gray-900/50 p-2 md:p-6 rounded-lg border-2 border-gray-700 mb-4 w-full">
                 <div id="playerCharacter" class="character w-1/3 h-full">
-                    <!-- NEW Player Character SVG -->
                     <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" class="h-full w-full object-contain">
                         <g fill-rule="evenodd">
                             <path d="M50 30 C 40 30, 40 40, 50 40 S 60 30, 50 30 Z" fill="#F3F4F6"/>
@@ -202,13 +232,13 @@
             </div>
 
             <!-- Move List -->
-            <div id="moveList" class="grid grid-cols-2 md:grid-cols-3 gap-4">
-                <button onclick="showTechnique('zenBreath')" class="btn-modern btn-secondary">Zen Breath</button>
-                <button onclick="showTechnique('grounding')" class="btn-modern btn-secondary">5-4-3-2-1</button>
-                <button onclick="showTechnique('reframing')" class="btn-modern btn-secondary">Mind Shift</button>
-                <button onclick="showTechnique('tensionTakedown')" class="btn-modern btn-secondary">Tension Takedown</button>
-                <button onclick="showTechnique('serenitySanctuary')" class="btn-modern btn-secondary">Serenity Sanctuary</button>
-                <button onclick="giveUp()" class="btn-modern bg-red-700 hover:bg-red-600">Give Up</button>
+            <div id="moveList" class="grid grid-cols-2 md:grid-cols-3 gap-4 w-full">
+                <button onclick="playSound('click'); showTechnique('zenBreath')" class="btn-modern btn-secondary">Zen Breath</button>
+                <button onclick="playSound('click'); showTechnique('grounding')" class="btn-modern btn-secondary">5-4-3-2-1</button>
+                <button onclick="playSound('click'); showTechnique('reframing')" class="btn-modern btn-secondary">Mind Shift</button>
+                <button onclick="playSound('click'); showTechnique('tensionTakedown')" class="btn-modern btn-secondary">Tension Takedown</button>
+                <button onclick="playSound('click'); showTechnique('serenitySanctuary')" class="btn-modern btn-secondary">Serenity Sanctuary</button>
+                <button onclick="playSound('click'); giveUp()" class="btn-modern bg-red-700 hover:bg-red-600">Give Up</button>
             </div>
         </div>
 
@@ -241,7 +271,7 @@
                     <p class="text-sm text-gray-300">Use your imagination to transport yourself to a safe, calm place. This creates a powerful internal feeling of peace.</p>
                 </div>
             </div>
-            <button onclick="showScreen('startScreen')" class="btn-modern btn-secondary mt-8">Back to Menu</button>
+            <button onclick="playSound('click'); showScreen('startScreen')" class="btn-modern btn-secondary mt-8">Back to Menu</button>
         </div>
 
         <!-- Screen: Victory -->
@@ -260,7 +290,8 @@
                     <option value="future">Worry about the future</option>
                     <option value="other">Other</option>
                 </select>
-                <button onclick="saveReportAndReturn()" class="btn-modern btn-primary w-full">Save and Return</button>
+                <button onclick="playSound('click'); getSenseiWisdom('win')" class="btn-modern btn-primary w-full mb-2">✨ Get Sensei's Wisdom</button>
+                <button onclick="playSound('click'); saveReportAndReturn()" class="btn-modern btn-secondary w-full">Return to Menu</button>
             </div>
         </div>
         
@@ -268,7 +299,8 @@
         <div id="gaveUpScreen" class="screen hidden text-center">
             <h2 class="font-pixel text-4xl text-red-500" style="text-shadow: var(--glow-red);">OVERWHELMED</h2>
             <p class="text-cyan-400 mb-8">It's okay to retreat. Rest and try again when you're ready.</p>
-            <button onclick="showScreen('startScreen')" class="btn-modern btn-secondary">Return to Menu</button>
+            <button onclick="playSound('click'); getSenseiWisdom('loss')" class="btn-modern btn-primary w-64 mb-2">✨ Get Sensei's Wisdom</button>
+            <button onclick="playSound('click'); showScreen('startScreen')" class="btn-modern btn-secondary w-64">Return to Menu</button>
         </div>
     </div>
 
@@ -278,11 +310,24 @@
             <!-- Content will be injected by JS -->
         </div>
     </div>
+    
+    <!-- Modal for Sensei's Wisdom -->
+    <div id="senseiModal" class="hidden fixed inset-0 z-50 flex items-center justify-center modal-backdrop">
+        <div class="modal-content w-11/12 max-w-lg text-center relative p-8">
+            <h3 class="font-pixel text-2xl text-yellow-400 mb-4">Sensei's Wisdom</h3>
+            <div id="senseiWisdomText" class="text-cyan-300 min-h-[100px]">
+                <!-- Wisdom will be injected here -->
+            </div>
+            <button onclick="playSound('click'); closeSenseiModal()" class="btn-modern btn-secondary mt-6">Close</button>
+        </div>
+    </div>
 
     <script>
         const screenContainer = document.getElementById('screenContainer');
         const techniqueModal = document.getElementById('techniqueModal');
         const modalContent = document.getElementById('modalContent');
+        const senseiModal = document.getElementById('senseiModal');
+        const senseiWisdomText = document.getElementById('senseiWisdomText');
         const composureBar = document.getElementById('composureBar');
         const stressBar = document.getElementById('stressBar');
         const composureText = document.getElementById('composureText');
@@ -292,13 +337,51 @@
         let composureLevel = 100;
         let currentOpponent = '';
         let currentScreen = 'startScreen';
+        let currentOpponentName = '';
+        let audioStarted = false;
 
-        // NEW Monster SVGs
         const monsterSVGs = {
             anxiety: `<svg viewBox="0 0 100 100" class="h-full w-full object-contain" xmlns="http://www.w3.org/2000/svg"><g fill="none" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M50 90 V 60 L 65 75 L 60 45 L 75 40 L 55 35 L 50 10 L 45 35 L 25 40 L 40 45 L 35 75 L 50 60 Z" stroke="#C7D2FE" fill="#4338CA"/><path d="M50 60 L 40 45 L 30 50 Z" stroke="#A5B4FC" fill="#6D28D9"/><path d="M50 60 L 60 45 L 70 50 Z" stroke="#A5B4FC" fill="#6D28D9"/><path d="M50 35 L 40 25 M60 25 L 50 35" stroke="#C7D2FE"/></g></svg>`,
             burnout: `<svg viewBox="0 0 100 100" class="h-full w-full object-contain" xmlns="http://www.w3.org/2000/svg"><g fill="#6B7280"><path d="M30 95 L 70 95 L 75 70 L 25 70 Z"/><path d="M35 70 L 65 70 L 60 40 L 40 40 Z"/><circle cx="50" cy="25" r="15"/><path d="M25 70 L 20 50 L 35 55 Z"/><path d="M75 70 L 80 50 L 65 55 Z"/></g><g fill="#4B5563"><path d="M48 22 L 52 22 L 52 28 L 48 28 Z"/><path d="M40 32 L 60 32 L 60 35 L 40 35 Z"/><path d="M30 95 L 35 70 L 25 70 Z"/><path d="M70 95 L 65 70 L 75 70 Z"/></g><path d="M50 50 L 40 40 M60 40 L 50 50" fill="none" stroke="#1F2937" stroke-width="2"/></svg>`,
             anger: `<svg viewBox="0 0 100 100" class="h-full w-full object-contain" xmlns="http://www.w3.org/2000/svg"><g><path d="M50 90 L 80 60 L 70 50 L 90 20 L 60 30 L 50 10 L 40 30 L 10 20 L 30 50 L 20 60 Z" fill="#F87171" stroke="#DC2626" stroke-width="3"/><path d="M50 70 L 65 55 L 50 40 L 35 55 Z" fill="#111827"/><path d="M40 40 L 60 40" stroke="white" stroke-width="4" stroke-linecap="round"/></g></svg>`
         };
+        
+        const opponentNames = {
+            anxiety: "Anxious Assassin",
+            burnout: "Exhausted Brute",
+            anger: "Raging Brawler"
+        };
+        
+        // --- Audio Setup ---
+        const sounds = {
+            'click': new Tone.Synth({ oscillator: { type: 'sine' }, envelope: { attack: 0.005, decay: 0.1, sustain: 0.3, release: 1 } }).toDestination(),
+            'hit': new Tone.MembraneSynth({ pitchDecay: 0.05, octaves: 10, oscillator: { type: 'sine' }, envelope: { attack: 0.001, decay: 0.4, sustain: 0.01, release: 1.4, attackCurve: 'exponential' } }).toDestination(),
+            'win': new Tone.Synth({ oscillator: { type: 'triangle' }, envelope: { attack: 0.05, decay: 0.2, sustain: 0.5, release: 1 } }).toDestination(),
+            'lose': new Tone.Synth({ oscillator: { type: 'sawtooth' }, envelope: { attack: 0.1, decay: 0.5, sustain: 0.2, release: 1 } }).toDestination()
+        };
+
+        function playSound(sound) {
+            if (!audioStarted) {
+                Tone.start();
+                audioStarted = true;
+            }
+            switch(sound) {
+                case 'click':
+                    sounds.click.triggerAttackRelease('C4', '8n');
+                    break;
+                case 'hit':
+                    sounds.hit.triggerAttackRelease('C2', '8n');
+                    break;
+                case 'win':
+                    sounds.win.triggerAttackRelease('C5', '8n', Tone.now());
+                    sounds.win.triggerAttackRelease('E5', '8n', Tone.now() + 0.2);
+                    sounds.win.triggerAttackRelease('G5', '8n', Tone.now() + 0.4);
+                    break;
+                 case 'lose':
+                    sounds.lose.triggerAttackRelease('C3', '4n');
+                    break;
+            }
+        }
 
         document.addEventListener('DOMContentLoaded', () => {
             document.querySelectorAll('#selectOpponentScreen .monster-container').forEach(container => {
@@ -307,13 +390,12 @@
                 else if (card.onclick.toString().includes('burnout')) container.innerHTML = monsterSVGs.burnout;
                 else if (card.onclick.toString().includes('anger')) container.innerHTML = monsterSVGs.anger;
             });
-            showScreen('startScreen', true); // Initial screen show without animation
+            showScreen('startScreen', true);
         });
 
         function showScreen(screenId, instant = false) {
             const newScreen = document.getElementById(screenId);
             const oldScreen = document.getElementById(currentScreen);
-
             if (instant) {
                 oldScreen.classList.add('hidden');
                 newScreen.classList.remove('hidden');
@@ -326,6 +408,7 @@
 
         function selectOpponent(opponentType) {
             currentOpponent = opponentType;
+            currentOpponentName = opponentNames[opponentType];
             document.getElementById('monsterCharacter').innerHTML = monsterSVGs[opponentType];
             stressLevel = 100;
             composureLevel = 100;
@@ -336,13 +419,12 @@
         function updateBars() {
             stressLevel = Math.max(0, Math.round(stressLevel));
             composureLevel = Math.min(100, Math.round(composureLevel));
-            
             stressBar.style.width = `${stressLevel}%`;
             stressText.innerText = `${stressLevel}%`;
             composureBar.style.width = `${composureLevel}%`;
             composureText.innerText = `${composureLevel}%`;
-
             if (stressLevel <= 0) {
+                playSound('win');
                 setTimeout(() => {
                     document.getElementById('tamedMonsterContainer').innerHTML = monsterSVGs[currentOpponent];
                     showScreen('victoryScreen');
@@ -351,6 +433,7 @@
         }
 
         function performMove(damage, composureBoost) {
+            playSound('hit');
             stressLevel -= damage;
             composureLevel += composureBoost;
             updateBars();
@@ -366,7 +449,7 @@
                         <p class="mb-6">Follow the rhythm. Breathe in, hold, breathe out, hold.</p>
                         <div id="breathAnimator" class="w-24 h-24 bg-cyan-400 mx-auto rounded-full transition-transform duration-[4000ms] ease-in-out"></div>
                         <p id="breathText" class="mt-4 text-lg">Get Ready...</p>
-                        <button onclick="closeModal()" class="btn-modern btn-secondary mt-6">Cancel</button>
+                        <button onclick="playSound('click'); closeModal()" class="btn-modern btn-secondary mt-6">Cancel</button>
                     `;
                     techniqueModal.classList.remove('hidden');
                     modalContent.innerHTML = content;
@@ -382,7 +465,7 @@
                             <p><strong>2:</strong> Name two things you can smell.</p>
                             <p><strong>1:</strong> Name one thing you can taste.</p>
                         </div>
-                        <button onclick="performMove(25, 10)" class="btn-modern btn-primary mt-6">Done</button>
+                        <button onclick="playSound('click'); performMove(25, 10)" class="btn-modern btn-primary mt-6">Done</button>
                     `;
                     techniqueModal.classList.remove('hidden');
                     modalContent.innerHTML = content;
@@ -391,10 +474,10 @@
                      content = `
                         <h3 class="font-pixel text-2xl text-yellow-400 mb-4">Mind Shift</h3>
                         <p class="mb-4">Take a negative thought you're having.</p>
-                        <textarea class="w-full bg-gray-700 p-2 border-2 border-gray-500 rounded-md" rows="2" placeholder="e.g., 'I will fail this test.'"></textarea>
-                        <p class="my-4">Now, challenge it. What is a more balanced, fair perspective?</p>
-                        <textarea class="w-full bg-gray-700 p-2 border-2 border-gray-500 rounded-md" rows="2" placeholder="e.g., 'I've studied hard and I'm capable.'"></textarea>
-                        <button onclick="performMove(30, 15)" class="btn-modern btn-primary mt-6">Done</button>
+                        <textarea id="negativeThoughtInput" class="w-full bg-gray-700 p-2 border-2 border-gray-500 rounded-md" rows="2" placeholder="e.g., 'I will fail this test.'"></textarea>
+                        <button id="reframeBtn" onclick="playSound('click'); getReframingSuggestions()" class="btn-modern btn-primary my-4 w-full">✨ Get AI Suggestions</button>
+                        <div id="reframedSuggestions" class="text-left text-sm space-y-2 bg-gray-900/50 p-3 rounded-md min-h-[100px]"></div>
+                        <button onclick="playSound('click'); performMove(30, 15)" class="btn-modern btn-secondary mt-6">Done</button>
                     `;
                     techniqueModal.classList.remove('hidden');
                     modalContent.innerHTML = content;
@@ -410,7 +493,7 @@
                             <p><strong>4. Shoulders & Neck:</strong> Shrug your shoulders, then release.</p>
                             <p><strong>5. Face:</strong> Scrunch your face, then release.</p>
                         </div>
-                        <button onclick="performMove(35, 20)" class="btn-modern btn-primary mt-6">Complete</button>
+                        <button onclick="playSound('click'); performMove(35, 20)" class="btn-modern btn-primary mt-6">Complete</button>
                     `;
                     techniqueModal.classList.remove('hidden');
                     modalContent.innerHTML = content;
@@ -426,7 +509,7 @@
                             <li>What do you feel?</li>
                         </ul>
                         <p class="mt-4">Stay there for a few moments.</p>
-                        <button onclick="performMove(40, 25)" class="btn-modern btn-primary mt-6">I'm Back</button>
+                        <button onclick="playSound('click'); performMove(40, 25)" class="btn-modern btn-primary mt-6">I'm Back</button>
                     `;
                     techniqueModal.classList.remove('hidden');
                     modalContent.innerHTML = content;
@@ -470,15 +553,116 @@
             techniqueModal.classList.add('hidden');
             modalContent.innerHTML = '';
         }
+        
+        function closeSenseiModal() {
+            senseiModal.classList.add('hidden');
+            senseiWisdomText.innerHTML = '';
+        }
 
         function giveUp() {
+            playSound('lose');
             showScreen('gaveUpScreen');
         }
 
         function saveReportAndReturn() {
-            const trigger = document.getElementById('triggerSelect').value;
-            console.log(`Stress trigger saved: ${trigger}`);
             showScreen('startScreen');
+        }
+
+        function exitApp() {
+            // This function will only work when the app is running in a Capacitor environment
+            try {
+                const { App } = Capacitor.Plugins;
+                App.exitApp();
+            } catch (e) {
+                console.log("App.exitApp() is not available in a standard browser.");
+                // Fallback for browser (optional: could close window or just do nothing)
+            }
+        }
+
+        // --- Gemini API Integration ---
+
+        async function callGeminiAPI(userPrompt, systemInstruction) {
+            const apiKey = ""; // Leave blank, handled by the environment
+            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${apiKey}`;
+
+            const payload = {
+                contents: [{ parts: [{ text: userPrompt }] }],
+                systemInstruction: {
+                    parts: [{ text: systemInstruction }]
+                },
+            };
+
+            try {
+                // Exponential backoff
+                let response;
+                let delay = 1000;
+                for (let i = 0; i < 5; i++) {
+                    response = await fetch(apiUrl, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+                    if (response.ok) break;
+                    await new Promise(resolve => setTimeout(resolve, delay));
+                    delay *= 2;
+                }
+
+                if (!response.ok) {
+                    throw new Error(`API call failed with status: ${response.status}`);
+                }
+
+                const result = await response.json();
+                const candidate = result.candidates?.[0];
+
+                if (candidate && candidate.content?.parts?.[0]?.text) {
+                    return candidate.content.parts[0].text;
+                } else {
+                    return "Sorry, I couldn't generate a response. Please try again.";
+                }
+            } catch (error) {
+                console.error("Gemini API call error:", error);
+                return "An error occurred while contacting the AI. Please check your connection.";
+            }
+        }
+
+        async function getReframingSuggestions() {
+            const negativeThought = document.getElementById('negativeThoughtInput').value;
+            const suggestionsDiv = document.getElementById('reframedSuggestions');
+            const reframeBtn = document.getElementById('reframeBtn');
+
+            if (!negativeThought.trim()) {
+                suggestionsDiv.innerText = "Please enter a thought first.";
+                return;
+            }
+
+            reframeBtn.disabled = true;
+            reframeBtn.innerHTML = '<span class="loader"></span>';
+
+            const systemInstruction = `You are a compassionate CBT therapist. Your goal is to help a user reframe a negative thought. Provide 3 alternative, balanced perspectives. Keep them short, encouraging, and easy to understand. Do not use jargon. Respond in plain text, with each suggestion starting with a bullet point (•).`;
+            
+            const aiResponse = await callGeminiAPI(negativeThought, systemInstruction);
+
+            suggestionsDiv.innerHTML = aiResponse.replace(/\•/g, '<p class="mb-1">•');
+            reframeBtn.disabled = false;
+            reframeBtn.innerHTML = '✨ Get AI Suggestions';
+        }
+        
+        async function getSenseiWisdom(outcome) {
+            const trigger = document.getElementById('triggerSelect')?.value || 'an unknown reason';
+            senseiModal.classList.remove('hidden');
+            senseiWisdomText.innerHTML = '<div class="flex justify-center items-center"><span class="loader"></span></div>';
+
+            const systemInstruction = `You are Sensei Kai, a wise and compassionate martial arts master who teaches students to manage their inner turmoil. Your tone is calm, encouraging, and insightful, like a zen master. Do not use platitudes. Offer a short, single paragraph of wisdom.`;
+            
+            let userPrompt;
+            if (outcome === 'win') {
+                userPrompt = `My student just successfully tamed their '${currentOpponentName}' which was triggered by '${trigger}'. Offer them some wisdom about this victory and how to carry this calm forward.`;
+            } else { // loss
+                userPrompt = `My student felt overwhelmed by their '${currentOpponentName}' and had to retreat. This was triggered by '${trigger}'. Offer them some compassionate wisdom about the importance of rest and the courage it takes to try again.`;
+            }
+            
+            const aiResponse = await callGeminiAPI(userPrompt, systemInstruction);
+            senseiWisdomText.innerText = aiResponse;
         }
 
     </script>
