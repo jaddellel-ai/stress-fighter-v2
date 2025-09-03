@@ -16,10 +16,25 @@ android {
             ignoreAssetsPattern '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
         }
     }
+  // This block explicitly reads the signing key details from the environment variables
+// provided by the GitHub Actions workflow.
+signingConfigs {
+    release {
+        if (System.getenv("SIGNING_STORE_FILE") != null) {
+            storeFile file(System.getenv("SIGNING_STORE_FILE"))
+            storePassword System.getenv("SIGNING_STORE_PASSWORD")
+            keyAlias System.getenv("SIGNING_KEY_ALIAS")
+            keyPassword System.getenv("SIGNING_KEY_PASSWORD")
+        }
+    }
+}  
     buildTypes {
         release {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+            // This line tells the 'release' build to use the configuration we just defined above.
+signingConfig signingConfigs.release
+
         }
     }
 }
