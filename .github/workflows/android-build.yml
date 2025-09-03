@@ -1,0 +1,60 @@
+# This is the GitHub Actions workflow file for Stress Fighter v2
+# Place this in your repository at: .github/workflows/android-build.yml
+
+name: Build Android App Bundle v2
+
+on:
+  # Runs automatically when you push to the 'main' branch
+  push:
+    branches: [ "main" ]
+  
+  # This trigger allows you to run this workflow manually from the Actions tab
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20' # Correct version for Capacitor
+
+      - name: Set up Java (JDK)
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21' # Correct version for Android Gradle
+          distribution: 'temurin'
+
+      - name: Install Dependencies
+        run: npm install
+
+      - name: Sync Capacitor Project
+        run: npx cap sync android
+
+      - name: Decode Keystore
+        id: decode_keystore
+        uses: timheuer/base64-to-file@v1.2
+        with:
+          fileName: 'release.keystore'
+          encodedString: ${{ secrets.KEYSTORE_BASE64_V2 }} # Using new V2 secret
+
+      - name: Build Android App Bundle
+        working-directory: ./android
+        run: ./gradlew bundleRelease
+        env:
+          SIGNING_KEY_ALIAS: ${{ secrets.KEY_ALIAS_V2 }} # Using new V2 secret
+          SIGNING_KEY_PASSWORD: ${{ secrets.KEY_PASSWORD_V2 }} # Using new V2 secret
+          SIGNING_STORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD_V2 }} # Using new V2 secret
+          SIGNING_STORE_FILE: ${{ steps.decode_keystore.outputs.filePath }}
+
+      - name: Upload App Bundle Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: stress-fighter-app-bundle-v2
+          path: android/app/build/outputs/bundle/release/app-release.aab
+
