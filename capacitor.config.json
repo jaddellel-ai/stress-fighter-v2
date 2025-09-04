@@ -1,5 +1,12 @@
 {
   "appId": "com.stressfighter.appv2",
   "appName": "Stress Fighter",
-  "webDir": "www"
+  "webDir": "www",
+  "server": {
+    "androidScheme": "https"
+  },
+  "android": {
+    "orientation": "portrait"
+  }
 }
+
