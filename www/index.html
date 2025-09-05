@@ -9,7 +9,7 @@
         style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; 
         font-src https://fonts.gstatic.com; 
         img-src 'self' data: https://thesustainabilitymanager.com http://thesustainabilitymanager.com; 
-        connect-src https://generativelanguage.googleapis.com;">
+        connect-src 'none';">
     <title>Stress Fighter</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -365,6 +365,29 @@
         tenseAmbience.volume.value = -40; // very quiet
         const calmAmbience = new Tone.Synth({ oscillator: { type: 'fatsine' }, envelope: { attack: 5, decay: 0.1, sustain: 1 } }).toDestination();
         calmAmbience.volume.value = -40;
+        
+        // --- Pre-generated AI Content ---
+        const cannedResponses = {
+            reframing: [
+                "• Instead of 'I will fail,' try 'This is challenging, but I can handle it.'\n• What if this is an opportunity to learn, not just a test to pass?\n• It's okay to not be perfect. My best effort is enough.",
+                "• This feels overwhelming now, but feelings are temporary.\n• I have overcome difficult things before. I have the strength to get through this too.\n• What is one small, manageable step I can take right now?",
+                "• Is this thought 100% true? Or is it just my anxiety talking?\n• A more balanced view is that there are things I can control and things I can't. I will focus on what I can control.\n• I will be kind to myself, no matter the outcome."
+            ],
+            senseiWin: [
+                "An excellent strategy. To plan for the storm while the sea is calm is the mark of a true master. Carry this foresight with you, and you will find peace is always within reach.",
+                "Well done. You have not only calmed the storm but also learned from it. Each challenge you overcome forges greater inner strength. Remember this feeling of balance.",
+                "A wise plan. By preparing for the trigger, you take away its power. Continue this practice of mindful preparation, and you will become unshakable."
+            ],
+            senseiLoss: [
+                "Even the strongest warrior must rest. To recognize your limits is a sign of wisdom, not weakness. Recover your strength. The challenge will be there when you are ready to face it again.",
+                "Do not be discouraged. The path to inner peace has many steps. You have learned something valuable today. Rest, reflect, and return with new understanding."
+            ]
+        };
+
+        function getRandomItem(arr) {
+            return arr[Math.floor(Math.random() * arr.length)];
+        }
+
 
         function updateAmbience() {
             if (!audioStarted) return;
@@ -567,7 +590,7 @@
                      content = `<h3 class="font-pixel text-2xl text-yellow-400 mb-4">Mind Shift</h3>
                         <p class="mb-4">Take a negative thought you're having.</p>
                         <textarea id="negativeThoughtInput" class="w-full bg-gray-700 p-2 border-2 border-gray-500 rounded-md" rows="2" placeholder="e.g., 'I will fail this test.'"></textarea>
-                        <button id="reframeBtn" onclick="playSound('click'); getReframingSuggestions()" class="btn-modern btn-primary my-4 w-full">✨ Get AI Suggestions</button>
+                        <button id="reframeBtn" onclick="playSound('click'); getReframingSuggestions()" class="btn-modern btn-primary my-4 w-full">✨ Get Suggestions</button>
                         <div id="reframedSuggestions" class="text-left text-sm space-y-2 bg-gray-900/50 p-3 rounded-md min-h-[100px]"></div>
                         <button onclick="showFeelingCheckIn(30, 15, 'reframing')" class="btn-modern btn-secondary mt-6">Done</button>`;
                     modalContent.innerHTML = content;
@@ -676,92 +699,35 @@
             }
         }
 
-        async function callGeminiAPI(userPrompt, systemInstruction) {
-            const apiKey = "";
-            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${apiKey}`;
-            const payload = {
-                contents: [{ parts: [{ text: userPrompt }] }],
-                systemInstruction: { parts: [{ text: systemInstruction }] },
-            };
-            try {
-                const controller = new AbortController();
-                const timeoutId = setTimeout(() => controller.abort(), 20000); 
-                const response = await fetch(apiUrl, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(payload),
-                    signal: controller.signal 
-                });
-                clearTimeout(timeoutId); 
-                if (!response.ok) {
-                    throw new Error(`API call failed: ${response.status}`);
-                }
-                const result = await response.json();
-                const candidate = result.candidates?.[0];
-                if (candidate && candidate.content?.parts?.[0]?.text) {
-                    return candidate.content.parts[0].text;
-                } else {
-                    if (candidate && candidate.finishReason === 'SAFETY') {
-                        return "The response was blocked for safety reasons. Please try a different prompt.";
-                    }
-                    return "Sorry, I couldn't generate a response. Please try again.";
-                }
-            } catch (error) {
-                console.error("Gemini API call error:", error);
-                if (error.name === 'AbortError') {
-                    return "The request timed out. Please check your connection and try again.";
-                }
-                return "An error occurred while contacting the AI. Please check your connection.";
-            }
-        }
-
-        async function getReframingSuggestions() {
-            const negativeThought = document.getElementById('negativeThoughtInput').value;
+        function getReframingSuggestions() {
             const suggestionsDiv = document.getElementById('reframedSuggestions');
             const reframeBtn = document.getElementById('reframeBtn');
-            if (!negativeThought.trim()) {
-                suggestionsDiv.innerText = "Please enter a thought first.";
-                return;
-            }
             reframeBtn.disabled = true;
             reframeBtn.innerHTML = '<span class="loader"></span>';
-            try {
-                const systemInstruction = `You are a compassionate CBT therapist. Your goal is to help a user reframe a negative thought. Provide 3 alternative, balanced perspectives. Keep them short, encouraging, and easy to understand. Do not use jargon. Respond in plain text, with each suggestion starting with a bullet point (•).`;
-                const aiResponse = await callGeminiAPI(negativeThought, systemInstruction);
-                suggestionsDiv.innerHTML = aiResponse.replace(/\•/g, '<p class="mb-1">•');
-            } catch (error) {
-                console.error("Error in getReframingSuggestions:", error);
-                suggestionsDiv.innerText = "An unexpected error occurred while getting suggestions.";
-            } finally {
+
+            setTimeout(() => {
+                const response = getRandomItem(cannedResponses.reframing);
+                suggestionsDiv.innerHTML = response.replace(/\•/g, '<p class="mb-1">•');
                 reframeBtn.disabled = false;
-                reframeBtn.innerHTML = '✨ Get AI Suggestions';
-            }
+                reframeBtn.innerHTML = '✨ Get Suggestions';
+            }, 500); // Simulate AI thinking
         }
         
-        async function getSenseiFeedback(outcome) {
-            const trigger = document.getElementById('triggerInput')?.value || 'an unknown reason';
-            const strategy = document.getElementById('strategyInput')?.value;
+        function getSenseiFeedback(outcome) {
             senseiModal.classList.remove('hidden');
             senseiWisdomText.innerHTML = '<div class="flex justify-center items-center"><span class="loader"></span></div>';
             
-            try {
-                const systemInstruction = `You are Sensei Kai, a wise and compassionate martial arts master who teaches students to manage their inner turmoil. Your tone is calm, encouraging, and insightful, like a zen master. Do not use platitudes. Offer a short, single paragraph of wisdom.`;
-                
-                let userPrompt;
+            setTimeout(() => {
+                let response;
                 if (outcome === 'win') {
                     senseiModalTitle.innerText = "Sensei's Feedback";
-                    userPrompt = `My student just successfully calmed their '${currentOpponentName}' which was triggered by '${trigger}'. They have proposed a strategy for next time: '${strategy}'. Please validate their strategy and offer a short, encouraging piece of wisdom about their progress. If they didn't enter a strategy, just give general wisdom.`;
+                    response = getRandomItem(cannedResponses.senseiWin);
                 } else { // loss
                     senseiModalTitle.innerText = "Sensei's Wisdom";
-                    userPrompt = `My student felt overwhelmed by their '${currentOpponentName}'. Offer them some compassionate wisdom about the importance of rest and the courage it takes to try again.`;
+                    response = getRandomItem(cannedResponses.senseiLoss);
                 }
-                
-                const aiResponse = await callGeminiAPI(userPrompt, systemInstruction);
-                senseiWisdomText.innerText = aiResponse;
-            } catch (error) {
-                console.error("Error in getSenseiFeedback:", error);
-                senseiWisdomText.innerText = "An unexpected error occurred. Please try again.";
-            }
+                senseiWisdomText.innerText = response;
+            }, 500); // Simulate AI thinking
         }
     </script>
 </body>
