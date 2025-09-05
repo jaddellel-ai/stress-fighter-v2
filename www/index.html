@@ -207,7 +207,7 @@
     
         <div id="splashScreen" class="screen bg-gray-900 cursor-pointer" onclick="initApp()">
             <h1 class="font-pixel text-4xl md:text-5xl text-yellow-400 text-glow-yellow mb-4 text-center">Stress Fighter I</h1>
-            <img src="http://thesustainabilitymanager.com/launch.png" alt="Stress Fighter Launch Image" class="max-w-xs md:max-w-md mx-auto">
+            <img src="https://thesustainabilitymanager.com/launch.png" alt="Stress Fighter Launch Image" class="max-w-xs md:max-w-md mx-auto">
             <p class="text-lg text-cyan-400 text-glow-cyan mt-8 animate-pulse">Tap to Start</p>
         </div>
 
@@ -668,7 +668,12 @@
         }
 
         function exitApp() {
-            try { Capacitor.Plugins.App.exitApp(); } catch (e) { console.log("ExitApp not available in browser."); }
+            try { 
+                Capacitor.Plugins.App.exitApp(); 
+            } catch (e) { 
+                console.log("ExitApp not available in browser. Returning to splash screen.");
+                showScreen('splashScreen');
+            }
         }
 
         async function callGeminiAPI(userPrompt, systemInstruction) {
