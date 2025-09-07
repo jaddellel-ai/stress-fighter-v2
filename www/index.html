@@ -211,33 +211,6 @@
             background-size: 1.5em 1.5em;
             padding-right: 2.5rem;
         }
-        #gardenContainer {
-            width: 100%;
-            max-width: 600px;
-            height: 60%;
-            background-color: #374151;
-            border: 4px solid #4b5563;
-            border-radius: 12px;
-            position: relative;
-            overflow: hidden;
-        }
-        .garden-item {
-            position: absolute;
-            transition: opacity 0.5s ease-in-out;
-            opacity: 0.2; /* Locked by default */
-        }
-        .garden-item.unlocked { opacity: 1; }
-        .garden-item.golden { filter: drop-shadow(0 0 10px gold); }
-        #garden-stream { bottom: 10%; left: 5%; width: 90%; height: 20%; background-color: #60a5fa; border-radius: 15px; } /* Placeholder */
-        #garden-bonsai { bottom: 30%; left: 15%; width: 100px; height: 120px; background-color: #84cc16; } /* Placeholder */
-        #garden-lantern { bottom: 30%; right: 15%; width: 60px; height: 100px; background-color: #78716c; } /* Placeholder */
-        #perfectRoundBanner {
-            display: none;
-            font-family: 'Press Start 2P', cursive;
-            color: gold;
-            text-shadow: 0 0 10px gold;
-            margin-bottom: 1rem;
-        }
         #arenaBattleground {
             background-image: url('https://thesustainabilitymanager.com/background.png');
             background-size: cover;
@@ -275,23 +248,11 @@
             </div>
             <div class="space-y-4 flex flex-col items-center">
                 <button onclick="playSound('click'); showScreen('selectOpponentScreen')" class="btn-modern btn-primary w-64">Start Fight</button>
-                <button onclick="playSound('click'); showScreen('gardenScreen')" class="btn-modern btn-secondary w-64">Dojo Garden</button>
                 <button onclick="playSound('click'); showHowToPlay()" class="btn-modern btn-secondary w-64">How to Play</button>
                 <button onclick="playSound('click'); exitApp()" class="btn-modern btn-secondary w-64 bg-gray-700">Quit App</button>
             </div>
         </div>
         
-        <div id="gardenScreen" class="screen hidden">
-            <h2 class="font-pixel text-2xl md:text-3xl text-yellow-400 text-glow-yellow mb-6">Dojo Garden</h2>
-            <div id="gardenContainer">
-                <!-- Garden items will be populated here by JS -->
-                <div id="garden-stream" class="garden-item"></div>
-                <div id="garden-bonsai" class="garden-item"></div>
-                <div id="garden-lantern" class="garden-item"></div>
-            </div>
-            <button onclick="playSound('click'); showScreen('startScreen')" class="btn-modern btn-secondary mt-8">Back to Menu</button>
-        </div>
-
         <div id="selectOpponentScreen" class="screen hidden">
              <h2 class="font-pixel text-2xl md:text-3xl text-yellow-400 text-glow-yellow mb-6 text-center">Choose Your Opponent</h2>
              <p class="mb-8 text-cyan-400 text-center">What does your stress feel like today?</p>
@@ -344,7 +305,6 @@
 
         <div id="victoryScreen" class="screen hidden">
             <h2 class="font-pixel text-4xl text-yellow-400 text-glow-yellow mb-6">TRANQUILITY</h2>
-            <h3 id="perfectRoundBanner">PERFECT ROUND!</h3>
             <div id="tamedMonsterContainer" class="h-48 w-48 mx-auto my-4 character-container"></div>
             <p class="text-cyan-400 mb-8">You have calmed the storm. The stress is now at peace.</p>
             <div id="strategyLog" class="w-full max-w-md mx-auto mt-8 text-left">
@@ -416,7 +376,6 @@
         let audioStarted = false, appInitialized = false;
         let secretTechnique = { id: '', name: '' };
         let gameData = {};
-        let isPerfectRoundPossible = true;
         
         const defaultGameData = {
             garden: {
