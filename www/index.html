@@ -9,8 +9,11 @@
         style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; 
         font-src https://fonts.gstatic.com; 
         img-src 'self' data: https://thesustainabilitymanager.com http://thesustainabilitymanager.com; 
-        connect-src 'none';">
+        connect-src 'none';
+        media-src https://thesustainabilitymanager.com;">
     <title>Stress Fighter</title>
+    <!-- Preload the battle background image -->
+    <link rel="preload" href="https://thesustainabilitymanager.com/background.png" as="image">
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -127,11 +130,26 @@
             border-radius: 12px;
             transition: all 0.2s ease-in-out;
             backdrop-filter: blur(4px);
+            position: relative;
         }
         .opponent-card:hover {
             transform: translateY(-5px);
             border-color: #06b6d4;
             box-shadow: var(--glow-cyan);
+        }
+        .hint-icon {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            width: 24px;
+            height: 24px;
+            background-color: rgba(0,0,0,0.5);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            color: var(--sf-yellow);
         }
         .modal-backdrop {
             background-color: rgba(0,0,0,0.5);
@@ -155,7 +173,7 @@
         .character-container {
             display: flex;
             justify-content: center;
-            align-items: center;
+            align-items: flex-end; /* This is the change */
             height: 100%;
             width: 100%;
             position: relative; 
@@ -177,16 +195,50 @@
         }
         .damage-stress { color: var(--sf-red); }
         .damage-composure { color: var(--sf-yellow); }
-        .science-text {
-            font-size: 0.8rem;
-            color: #9ca3af; /* Tailwind gray-400 */
-            font-style: italic;
-            margin-top: 8px;
-            border-left: 2px solid var(--sf-cyan);
-            padding-left: 8px;
-        }
         .secret-technique-glow {
              box-shadow: var(--glow-yellow);
+        }
+        select.custom-select {
+            -webkit-appearance: none;
+            -moz-appearance: none;
+            appearance: none;
+            background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+            background-repeat: no-repeat;
+            background-position: right 0.5rem center;
+            background-size: 1.5em 1.5em;
+            padding-right: 2.5rem;
+        }
+        #gardenContainer {
+            width: 100%;
+            max-width: 600px;
+            height: 60%;
+            background-color: #374151;
+            border: 4px solid #4b5563;
+            border-radius: 12px;
+            position: relative;
+            overflow: hidden;
+        }
+        .garden-item {
+            position: absolute;
+            transition: opacity 0.5s ease-in-out;
+            opacity: 0.2; /* Locked by default */
+        }
+        .garden-item.unlocked { opacity: 1; }
+        .garden-item.golden { filter: drop-shadow(0 0 10px gold); }
+        #garden-stream { bottom: 10%; left: 5%; width: 90%; height: 20%; background-color: #60a5fa; border-radius: 15px; } /* Placeholder */
+        #garden-bonsai { bottom: 30%; left: 15%; width: 100px; height: 120px; background-color: #84cc16; } /* Placeholder */
+        #garden-lantern { bottom: 30%; right: 15%; width: 60px; height: 100px; background-color: #78716c; } /* Placeholder */
+        #perfectRoundBanner {
+            display: none;
+            font-family: 'Press Start 2P', cursive;
+            color: gold;
+            text-shadow: 0 0 10px gold;
+            margin-bottom: 1rem;
+        }
+        #arenaBattleground {
+            background-image: url('https://thesustainabilitymanager.com/background.png');
+            background-size: cover;
+            background-position: center bottom; /* This is the change */
         }
 
         @keyframes rotation { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
@@ -220,9 +272,21 @@
             </div>
             <div class="space-y-4 flex flex-col items-center">
                 <button onclick="playSound('click'); showScreen('selectOpponentScreen')" class="btn-modern btn-primary w-64">Start Fight</button>
+                <button onclick="playSound('click'); showScreen('gardenScreen')" class="btn-modern btn-secondary w-64">Dojo Garden</button>
                 <button onclick="playSound('click'); showHowToPlay()" class="btn-modern btn-secondary w-64">How to Play</button>
                 <button onclick="playSound('click'); exitApp()" class="btn-modern btn-secondary w-64 bg-gray-700">Quit App</button>
             </div>
+        </div>
+        
+        <div id="gardenScreen" class="screen hidden">
+            <h2 class="font-pixel text-2xl md:text-3xl text-yellow-400 text-glow-yellow mb-6">Dojo Garden</h2>
+            <div id="gardenContainer">
+                <!-- Garden items will be populated here by JS -->
+                <div id="garden-stream" class="garden-item"></div>
+                <div id="garden-bonsai" class="garden-item"></div>
+                <div id="garden-lantern" class="garden-item"></div>
+            </div>
+            <button onclick="playSound('click'); showScreen('startScreen')" class="btn-modern btn-secondary mt-8">Back to Menu</button>
         </div>
 
         <div id="selectOpponentScreen" class="screen hidden">
@@ -230,16 +294,19 @@
              <p class="mb-8 text-cyan-400 text-center">What does your stress feel like today?</p>
              <div class="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-4xl">
                 <div onclick="playSound('click'); selectOpponent('anxiety')" class="opponent-card p-4 cursor-pointer">
+                    <div class="hint-icon" onclick="event.stopPropagation(); showHint('anxiety')">?</div>
                     <div class="monster-container h-32 flex items-center justify-center"></div>
                     <h3 class="font-pixel text-xl text-red-400 mt-4">Anxious Assassin</h3>
                     <p class="text-sm mt-2 text-gray-300">Racing thoughts & worry about the future.</p>
                 </div>
                 <div onclick="playSound('click'); selectOpponent('burnout')" class="opponent-card p-4 cursor-pointer">
+                    <div class="hint-icon" onclick="event.stopPropagation(); showHint('burnout')">?</div>
                     <div class="monster-container h-32 flex items-center justify-center"></div>
                     <h3 class="font-pixel text-xl text-red-400 mt-4">Exhausted Brute</h3>
                     <p class="text-sm mt-2 text-gray-300">Heavy exhaustion & emotional depletion.</p>
                 </div>
                 <div onclick="playSound('click'); selectOpponent('anger')" class="opponent-card p-4 cursor-pointer">
+                    <div class="hint-icon" onclick="event.stopPropagation(); showHint('anger')">?</div>
                     <div class="monster-container h-32 flex items-center justify-center"></div>
                     <h3 class="font-pixel text-xl text-red-400 mt-4">Raging Brawler</h3>
                     <p class="text-sm mt-2 text-gray-300">Frustration, irritation & explosive feelings.</p>
@@ -258,7 +325,7 @@
                     <div id="stressBar" class="sf-bar" style="width: 100%;"></div>
                 </div>
             </div>
-            <div class="flex-grow flex justify-between items-center bg-gray-800 p-2 md:p-6 w-full">
+            <div id="arenaBattleground" class="flex-grow flex justify-between items-center p-2 md:p-6 w-full">
                 <div id="playerCharacter" class="character-container w-1/2 h-full"></div>
                 <div id="monsterCharacter" class="character-container w-1/2 h-full"></div>
             </div>
@@ -274,20 +341,30 @@
 
         <div id="victoryScreen" class="screen hidden">
             <h2 class="font-pixel text-4xl text-yellow-400 text-glow-yellow mb-6">TRANQUILITY</h2>
+            <h3 id="perfectRoundBanner">PERFECT ROUND!</h3>
             <div id="tamedMonsterContainer" class="h-48 w-48 mx-auto my-4 character-container"></div>
             <p class="text-cyan-400 mb-8">You have calmed the storm. The stress is now at peace.</p>
             <div id="strategyLog" class="w-full max-w-md mx-auto mt-8 text-left">
-                <h3 class="font-pixel text-lg text-yellow-400 mb-4 text-center">Post-Fight Strategy Log</h3>
-                
-                <label for="triggerInput" class="text-sm mb-2 block text-center">What was the specific trigger for this feeling?</label>
-                <input type="text" id="triggerInput" class="w-full p-2 bg-gray-700 border-2 border-gray-500 text-white mb-4 rounded-md" placeholder="e.g., A deadline at work...">
-                
+                 <h3 class="font-pixel text-lg text-yellow-400 mb-4 text-center">Post-Fight Strategy Log</h3>
+                <label for="triggerSelect" class="text-sm mb-2 block text-center">What was the specific trigger for this feeling?</label>
+                <select id="triggerSelect" class="w-full p-2 bg-gray-700 border-2 border-gray-500 text-white mb-4 rounded-md custom-select">
+                    <option value="Work or School Deadline">Work or School Deadline</option>
+                    <option value="Difficult Conversation">Difficult Conversation</option>
+                    <option value="Financial Worry">Financial Worry</option>
+                    <option value="Health Concern">Health Concern</option>
+                    <option value="Feeling Overwhelmed">Feeling Overwhelmed</option>
+                    <option value="Other">Other</option>
+                </select>
                 <label for="intensitySlider" class="text-sm mb-2 block text-center">How intense was it at the start? <span id="intensityValue">5</span>/10</label>
                 <input type="range" id="intensitySlider" min="1" max="10" value="5" class="w-full mb-4">
-
-                <label for="strategyInput" class="text-sm mb-2 block text-center">What is one small action you can take to prepare for this trigger next time?</label>
-                <textarea id="strategyInput" class="w-full p-2 bg-gray-700 border-2 border-gray-500 text-white mb-4 rounded-md" rows="2" placeholder="e.g., I will take a 5-minute walk..."></textarea>
-
+                <label for="strategySelect" class="text-sm mb-2 block text-center">What is one small action you can take to prepare for next time?</label>
+                 <select id="strategySelect" class="w-full p-2 bg-gray-700 border-2 border-gray-500 text-white mb-4 rounded-md custom-select">
+                    <option value="Take a 5-minute walk">Take a 5-minute walk</option>
+                    <option value="Listen to a favorite song">Listen to a favorite song</option>
+                    <option value="Talk to a friend">Talk to a friend</option>
+                    <option value="Write down my thoughts">Write down my thoughts</option>
+                    <option value="Do one small, manageable task">Do one small, manageable task</option>
+                </select>
                 <button onclick="playSound('click'); getSenseiFeedback('win')" class="btn-modern btn-primary w-full mb-2">✨ Get Sensei's Feedback</button>
                 <button onclick="playSound('click'); saveReportAndReturn()" class="btn-modern btn-secondary w-full">Save & Return to Menu</button>
             </div>
@@ -328,12 +405,23 @@
         const intensityValue = document.getElementById('intensityValue');
         const dailySecretContainer = document.getElementById('dailySecretContainer');
         const dailySecretText = document.getElementById('dailySecretText');
+        const perfectRoundBanner = document.getElementById('perfectRoundBanner');
 
         // --- State variables ---
         let stressLevel = 100, composureLevel = 100;
         let currentOpponent = '', currentScreen = 'splashScreen', currentOpponentName = '';
         let audioStarted = false, appInitialized = false;
         let secretTechnique = { id: '', name: '' };
+        let gameData = {};
+        let isPerfectRoundPossible = true;
+        
+        const defaultGameData = {
+            garden: {
+                anxiety: { unlocked: false, golden: false },
+                burnout: { unlocked: false, golden: false },
+                anger: { unlocked: false, golden: false }
+            }
+        };
 
         const characterImages = {
             player: 'https://thesustainabilitymanager.com/player.png',
@@ -354,16 +442,28 @@
             { id: 'serenitySanctuary', name: 'Serenity Sanctuary' }
         ];
 
+        const opponentWeaknesses = {
+            anxiety: 'grounding',
+            burnout: 'serenitySanctuary',
+            anger: 'zenBreath'
+        };
+        const hintMessages = {
+            anxiety: "Sensei's Hint: The Anxious Assassin thrives on future worries. Anchor yourself in the present to calm it.",
+            burnout: "Sensei's Hint: The Exhausted Brute is a heavy burden. True rest and inner peace are its weakness.",
+            anger: "Sensei's Hint: The Raging Brawler is fueled by rapid, shallow breaths. Slow your breathing to slow its heart."
+        };
+
         // --- Audio Setup ---
+        let battleMusic; // Declare here, initialize after Tone.start()
         const sounds = {
             'click': new Tone.Synth({ oscillator: { type: 'sine' }, envelope: { attack: 0.005, decay: 0.1, sustain: 0.3, release: 1 } }).toDestination(),
             'hit': new Tone.MembraneSynth({ pitchDecay: 0.05, octaves: 10, oscillator: { type: 'sine' }, envelope: { attack: 0.001, decay: 0.4, sustain: 0.01, release: 1.4, attackCurve: 'exponential' } }).toDestination(),
             'win': new Tone.Synth({ oscillator: { type: 'triangle' }, envelope: { attack: 0.05, decay: 0.2, sustain: 0.5, release: 1 } }).toDestination(),
             'lose': new Tone.Synth({ oscillator: { type: 'sawtooth' }, envelope: { attack: 0.1, decay: 0.5, sustain: 0.2, release: 1 } }).toDestination()
         };
-        const tenseAmbience = new Tone.NoiseSynth({ noise: { type: 'brown' }, envelope: { attack: 5, decay: 0.1, sustain: 1 } }).toDestination();
+        const tenseAmbience = new Tone.NoiseSynth({ noise: { type: 'brown' }, envelope: { attack: 5, decay: 0.1, sustain: 1 } });
         tenseAmbience.volume.value = -40; // very quiet
-        const calmAmbience = new Tone.Synth({ oscillator: { type: 'fatsine' }, envelope: { attack: 5, decay: 0.1, sustain: 1 } }).toDestination();
+        const calmAmbience = new Tone.Synth({ oscillator: { type: 'fatsine' }, envelope: { attack: 5, decay: 0.1, sustain: 1 } });
         calmAmbience.volume.value = -40;
         
         // --- Pre-generated AI Content ---
@@ -388,6 +488,30 @@
             return arr[Math.floor(Math.random() * arr.length)];
         }
 
+        // --- Game Data Functions (localStorage) ---
+        function loadGameData() {
+            const savedData = localStorage.getItem('stressFighterGameData');
+            gameData = savedData ? JSON.parse(savedData) : defaultGameData;
+        }
+
+        function saveGameData() {
+            localStorage.setItem('stressFighterGameData', JSON.stringify(gameData));
+        }
+
+        function renderGarden() {
+            if (!gameData.garden) return;
+            const stream = document.getElementById('garden-stream');
+            const bonsai = document.getElementById('garden-bonsai');
+            const lantern = document.getElementById('garden-lantern');
+
+            if (gameData.garden.anxiety.unlocked) stream.classList.add('unlocked');
+            if (gameData.garden.burnout.unlocked) bonsai.classList.add('unlocked');
+            if (gameData.garden.anger.unlocked) lantern.classList.add('unlocked');
+
+            if (gameData.garden.anxiety.golden) stream.classList.add('golden');
+            if (gameData.garden.burnout.golden) bonsai.classList.add('golden');
+            if (gameData.garden.anger.golden) lantern.classList.add('golden');
+        }
 
         function updateAmbience() {
             if (!audioStarted) return;
@@ -414,10 +538,20 @@
         function initApp() {
             if (appInitialized) return;
             appInitialized = true;
+            loadGameData();
             showScreen('startScreen');
             setSecretTechnique();
             Tone.start().then(() => { 
                 audioStarted = true;
+                // Initialize audio nodes after user interaction
+                battleMusic = new Tone.Player({
+                    url: "https://thesustainabilitymanager.com/battle.wav",
+                    loop: true,
+                    volume: -10,
+                    onload: () => {
+                        console.log("Battle music loaded.");
+                    }
+                }).toDestination();
                 tenseAmbience.toDestination();
                 calmAmbience.toDestination();
              }).catch(e => console.error("Audio could not be started:", e));
@@ -438,6 +572,7 @@
         }
 
         document.addEventListener('DOMContentLoaded', () => {
+            loadGameData();
             playerCharacter.innerHTML = `<img src="${characterImages.player}" class="character-img" alt="Player Character">`;
             document.querySelectorAll('#selectOpponentScreen .monster-container').forEach(container => {
                 const card = container.closest('.opponent-card');
@@ -450,11 +585,18 @@
             intensitySlider.addEventListener('input', (event) => {
                 intensityValue.textContent = event.target.value;
             });
+            renderGarden();
         });
 
         function showScreen(screenId) {
             document.querySelectorAll('.screen').forEach(screen => screen.classList.add('hidden'));
             document.getElementById(screenId).classList.remove('hidden');
+            if (screenId === 'gardenScreen') {
+                renderGarden();
+            }
+            if (screenId !== 'arenaScreen' && battleMusic && battleMusic.state === 'started') {
+                battleMusic.stop();
+            }
             currentScreen = screenId;
         }
 
@@ -467,10 +609,22 @@
             
             document.querySelectorAll('#moveList button').forEach(btn => btn.classList.remove('secret-technique-glow'));
             document.getElementById(`tech-${secretTechnique.id}`)?.classList.add('secret-technique-glow');
-
+            
+            isPerfectRoundPossible = true;
             stressLevel = 100; composureLevel = 100;
             updateBars();
             showScreen('arenaScreen');
+            if (audioStarted && battleMusic) {
+                if (battleMusic.loaded) {
+                    if (battleMusic.state !== 'started') battleMusic.start();
+                } else {
+                    battleMusic.onload = () => {
+                         if (currentScreen === 'arenaScreen' && battleMusic.state !== 'started') {
+                            battleMusic.start();
+                        }
+                    };
+                }
+            }
         }
         
         function showImpact(target, value) {
@@ -494,10 +648,20 @@
         }
 
         function triggerFinishingMove() {
+            if (battleMusic && battleMusic.state === 'started') battleMusic.stop();
             playSound('win');
             document.getElementById('moveList').style.pointerEvents = 'none';
             const monsterImg = monsterCharacter.querySelector('.character-img');
             const playerImg = playerCharacter.querySelector('.character-img');
+
+            if (isPerfectRoundPossible) {
+                perfectRoundBanner.style.display = 'block';
+                gameData.garden[currentOpponent].golden = true;
+            } else {
+                perfectRoundBanner.style.display = 'none';
+            }
+            gameData.garden[currentOpponent].unlocked = true;
+            saveGameData();
 
             monsterImg.src = characterImages[`${currentOpponent}-calm`];
             playerImg.src = characterImages['player-victory'];
@@ -518,13 +682,20 @@
             composureBar.style.width = `${composureLevel}%`;
             updateAmbience();
 
+            if (composureLevel < 90) {
+                isPerfectRoundPossible = false;
+            }
+
             if (isFinalMove && stressLevel <= 0) {
                 triggerFinishingMove();
             }
         }
 
         function completeMove(damage, composureBoost, techniqueId) {
-            if (techniqueId === secretTechnique.id) {
+            if (techniqueId === opponentWeaknesses[currentOpponent]) {
+                damage *= 2; // Super-effective!
+            }
+             if (techniqueId === secretTechnique.id) {
                 damage *= 1.5;
                 composureBoost *= 1.5;
             }
@@ -683,9 +854,9 @@
         }
 
         function saveReportAndReturn() {
-            const trigger = document.getElementById('triggerInput').value;
+            const trigger = document.getElementById('triggerSelect').value;
             const intensity = document.getElementById('intensitySlider').value;
-            const strategy = document.getElementById('strategyInput').value;
+            const strategy = document.getElementById('strategySelect').value;
             console.log('Session Logged:', { opponent: currentOpponentName, trigger, intensity, strategy });
             showScreen('startScreen');
         }
@@ -697,6 +868,13 @@
                 console.log("ExitApp not available in browser. Returning to splash screen.");
                 showScreen('splashScreen');
             }
+        }
+        
+        function showHint(opponentType) {
+            modalContent.innerHTML = `<h3 class="font-pixel text-xl text-yellow-400 mb-4">Scouting Report</h3>
+                <p class="text-cyan-300">${hintMessages[opponentType]}</p>
+                <button onclick="playSound('click'); closeModal()" class="btn-modern btn-secondary mt-6">Understood</button>`;
+            techniqueModal.classList.remove('hidden');
         }
 
         function getReframingSuggestions() {
