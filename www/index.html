@@ -18,7 +18,6 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Nunito:wght@400;600;700&display=swap" rel="stylesheet">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.7.77/Tone.js"></script>
     <style>
         :root {
             --glow-cyan: 0 0 5px #06b6d4, 0 0 10px #06b6d4, 0 0 20px #06b6d4;
@@ -52,6 +51,10 @@
             justify-content: center;
             padding: 1rem;
             overflow-y: auto;
+        }
+        #selectOpponentScreen {
+            justify-content: flex-start;
+            padding-top: 4rem;
         }
         .screen.hidden {
             opacity: 0;
@@ -173,7 +176,7 @@
         .character-container {
             display: flex;
             justify-content: center;
-            align-items: flex-end; /* This is the change */
+            align-items: flex-end;
             height: 100%;
             width: 100%;
             position: relative; 
@@ -238,7 +241,7 @@
         #arenaBattleground {
             background-image: url('https://thesustainabilitymanager.com/background.png');
             background-size: cover;
-            background-position: center bottom; /* This is the change */
+            background-position: center bottom;
         }
 
         @keyframes rotation { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
@@ -454,18 +457,8 @@
         };
 
         // --- Audio Setup ---
-        let battleMusic; // Declare here, initialize after Tone.start()
-        const sounds = {
-            'click': new Tone.Synth({ oscillator: { type: 'sine' }, envelope: { attack: 0.005, decay: 0.1, sustain: 0.3, release: 1 } }).toDestination(),
-            'hit': new Tone.MembraneSynth({ pitchDecay: 0.05, octaves: 10, oscillator: { type: 'sine' }, envelope: { attack: 0.001, decay: 0.4, sustain: 0.01, release: 1.4, attackCurve: 'exponential' } }).toDestination(),
-            'win': new Tone.Synth({ oscillator: { type: 'triangle' }, envelope: { attack: 0.05, decay: 0.2, sustain: 0.5, release: 1 } }).toDestination(),
-            'lose': new Tone.Synth({ oscillator: { type: 'sawtooth' }, envelope: { attack: 0.1, decay: 0.5, sustain: 0.2, release: 1 } }).toDestination()
-        };
-        const tenseAmbience = new Tone.NoiseSynth({ noise: { type: 'brown' }, envelope: { attack: 5, decay: 0.1, sustain: 1 } });
-        tenseAmbience.volume.value = -40; // very quiet
-        const calmAmbience = new Tone.Synth({ oscillator: { type: 'fatsine' }, envelope: { attack: 5, decay: 0.1, sustain: 1 } });
-        calmAmbience.volume.value = -40;
-        
+        let battleMusic = null; 
+
         // --- Pre-generated AI Content ---
         const cannedResponses = {
             reframing: [
@@ -513,20 +506,6 @@
             if (gameData.garden.anger.golden) lantern.classList.add('golden');
         }
 
-        function updateAmbience() {
-            if (!audioStarted) return;
-            if (stressLevel > 70) {
-                tenseAmbience.triggerAttack();
-                calmAmbience.triggerRelease();
-            } else if (stressLevel < 30) {
-                tenseAmbience.triggerRelease();
-                calmAmbience.triggerAttack('C2');
-            } else {
-                tenseAmbience.triggerRelease();
-                calmAmbience.triggerRelease();
-            }
-        }
-
         function setSecretTechnique() {
             const dayOfYear = Math.floor((new Date() - new Date(new Date().getFullYear(), 0, 0)) / (1000 * 60 * 60 * 24));
             const tech = techniques[dayOfYear % techniques.length];
@@ -541,34 +520,18 @@
             loadGameData();
             showScreen('startScreen');
             setSecretTechnique();
-            Tone.start().then(() => { 
-                audioStarted = true;
-                // Initialize audio nodes after user interaction
-                battleMusic = new Tone.Player({
-                    url: "https://thesustainabilitymanager.com/battle.wav",
-                    loop: true,
-                    volume: -10,
-                    onload: () => {
-                        console.log("Battle music loaded.");
-                    }
-                }).toDestination();
-                tenseAmbience.toDestination();
-                calmAmbience.toDestination();
-             }).catch(e => console.error("Audio could not be started:", e));
+            
+            // Initialize audio on first user interaction
+            audioStarted = true;
+            battleMusic = new Audio("https://thesustainabilitymanager.com/battle.mp3");
+            battleMusic.loop = true;
+            battleMusic.volume = 0.5;
+            battleMusic.load(); // Start loading in the background
         }
 
         function playSound(sound) {
-            if (!audioStarted) { initApp(); return; }
-            switch(sound) {
-                case 'click': sounds.click.triggerAttackRelease('C4', '8n'); break;
-                case 'hit': sounds.hit.triggerAttackRelease('C2', '8n'); break;
-                case 'win':
-                    sounds.win.triggerAttackRelease('C5', '8n', Tone.now());
-                    sounds.win.triggerAttackRelease('E5', '8n', Tone.now() + 0.2);
-                    sounds.win.triggerAttackRelease('G5', '8n', Tone.now() + 0.4);
-                    break;
-                case 'lose': sounds.lose.triggerAttackRelease('C3', '4n'); break;
-            }
+           // Simple sound effects can be added here later if needed
+           console.log(`Playing sound: ${sound}`);
         }
 
         document.addEventListener('DOMContentLoaded', () => {
@@ -587,6 +550,13 @@
             });
             renderGarden();
         });
+        
+        function safelyStopMusic() {
+            if (battleMusic) {
+                battleMusic.pause();
+                battleMusic.currentTime = 0;
+            }
+        }
 
         function showScreen(screenId) {
             document.querySelectorAll('.screen').forEach(screen => screen.classList.add('hidden'));
@@ -594,8 +564,8 @@
             if (screenId === 'gardenScreen') {
                 renderGarden();
             }
-            if (screenId !== 'arenaScreen' && battleMusic && battleMusic.state === 'started') {
-                battleMusic.stop();
+            if (screenId !== 'arenaScreen') {
+                safelyStopMusic();
             }
             currentScreen = screenId;
         }
@@ -615,15 +585,7 @@
             updateBars();
             showScreen('arenaScreen');
             if (audioStarted && battleMusic) {
-                if (battleMusic.loaded) {
-                    if (battleMusic.state !== 'started') battleMusic.start();
-                } else {
-                    battleMusic.onload = () => {
-                         if (currentScreen === 'arenaScreen' && battleMusic.state !== 'started') {
-                            battleMusic.start();
-                        }
-                    };
-                }
+                battleMusic.play().catch(e => console.error("Battle music play failed:", e));
             }
         }
         
@@ -648,7 +610,7 @@
         }
 
         function triggerFinishingMove() {
-            if (battleMusic && battleMusic.state === 'started') battleMusic.stop();
+            safelyStopMusic();
             playSound('win');
             document.getElementById('moveList').style.pointerEvents = 'none';
             const monsterImg = monsterCharacter.querySelector('.character-img');
@@ -680,8 +642,7 @@
             composureLevel = Math.min(100, composureLevel);
             stressBar.style.width = `${stressLevel}%`;
             composureBar.style.width = `${composureLevel}%`;
-            updateAmbience();
-
+            
             if (composureLevel < 90) {
                 isPerfectRoundPossible = false;
             }
@@ -746,13 +707,15 @@
         function showTechnique(techniqueId) {
             let content = '';
             techniqueModal.classList.remove('hidden');
+            if(battleMusic) battleMusic.volume = 0.1;
+
             switch (techniqueId) {
                 case 'zenBreath':
                     content = `<h3 class="font-pixel text-2xl text-yellow-400 mb-4">Zen Breath</h3>
                         <p class="mb-6">Follow the rhythm. Breathe in, hold, breathe out, hold.</p>
                         <div id="breathAnimator" class="w-24 h-24 bg-cyan-400 mx-auto rounded-full transition-transform duration-[4000ms] ease-in-out"></div>
                         <p id="breathText" class="mt-4 text-lg">Get Ready...</p>
-                        <button onclick="playSound('click'); closeModal()" class="btn-modern btn-secondary mt-6">Cancel</button>`;
+                        <button onclick="closeModal()" class="btn-modern btn-secondary mt-6">Cancel</button>`;
                     modalContent.innerHTML = content;
                     startBreathingExercise();
                     break;
@@ -761,7 +724,7 @@
                      content = `<h3 class="font-pixel text-2xl text-yellow-400 mb-4">Mind Shift</h3>
                         <p class="mb-4">Take a negative thought you're having.</p>
                         <textarea id="negativeThoughtInput" class="w-full bg-gray-700 p-2 border-2 border-gray-500 rounded-md" rows="2" placeholder="e.g., 'I will fail this test.'"></textarea>
-                        <button id="reframeBtn" onclick="playSound('click'); getReframingSuggestions()" class="btn-modern btn-primary my-4 w-full">✨ Get Suggestions</button>
+                        <button id="reframeBtn" onclick="getReframingSuggestions()" class="btn-modern btn-primary my-4 w-full">✨ Get Suggestions</button>
                         <div id="reframedSuggestions" class="text-left text-sm space-y-2 bg-gray-900/50 p-3 rounded-md min-h-[100px]"></div>
                         <button onclick="showFeelingCheckIn(30, 15, 'reframing')" class="btn-modern btn-secondary mt-6">Done</button>`;
                     modalContent.innerHTML = content;
@@ -825,6 +788,7 @@
         }
 
         function closeModal() {
+            if (battleMusic) battleMusic.volume = 0.5;
             techniqueModal.classList.add('hidden');
             modalContent.innerHTML = '';
         }
