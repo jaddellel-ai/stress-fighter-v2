@@ -368,23 +368,13 @@
         const intensityValue = document.getElementById('intensityValue');
         const dailySecretContainer = document.getElementById('dailySecretContainer');
         const dailySecretText = document.getElementById('dailySecretText');
-        const perfectRoundBanner = document.getElementById('perfectRoundBanner');
 
         // --- State variables ---
         let stressLevel = 100, composureLevel = 100;
         let currentOpponent = '', currentScreen = 'splashScreen', currentOpponentName = '';
         let audioStarted = false, appInitialized = false;
         let secretTechnique = { id: '', name: '' };
-        let gameData = {};
         
-        const defaultGameData = {
-            garden: {
-                anxiety: { unlocked: false, golden: false },
-                burnout: { unlocked: false, golden: false },
-                anger: { unlocked: false, golden: false }
-            }
-        };
-
         const characterImages = {
             player: 'https://thesustainabilitymanager.com/player.png',
             anxiety: 'https://thesustainabilitymanager.com/anxious%20assassin.png',
@@ -439,32 +429,7 @@
         function getRandomItem(arr) {
             return arr[Math.floor(Math.random() * arr.length)];
         }
-
-        // --- Game Data Functions (localStorage) ---
-        function loadGameData() {
-            const savedData = localStorage.getItem('stressFighterGameData');
-            gameData = savedData ? JSON.parse(savedData) : defaultGameData;
-        }
-
-        function saveGameData() {
-            localStorage.setItem('stressFighterGameData', JSON.stringify(gameData));
-        }
-
-        function renderGarden() {
-            if (!gameData.garden) return;
-            const stream = document.getElementById('garden-stream');
-            const bonsai = document.getElementById('garden-bonsai');
-            const lantern = document.getElementById('garden-lantern');
-
-            if (gameData.garden.anxiety.unlocked) stream.classList.add('unlocked');
-            if (gameData.garden.burnout.unlocked) bonsai.classList.add('unlocked');
-            if (gameData.garden.anger.unlocked) lantern.classList.add('unlocked');
-
-            if (gameData.garden.anxiety.golden) stream.classList.add('golden');
-            if (gameData.garden.burnout.golden) bonsai.classList.add('golden');
-            if (gameData.garden.anger.golden) lantern.classList.add('golden');
-        }
-
+        
         function setSecretTechnique() {
             const dayOfYear = Math.floor((new Date() - new Date(new Date().getFullYear(), 0, 0)) / (1000 * 60 * 60 * 24));
             const tech = techniques[dayOfYear % techniques.length];
@@ -476,7 +441,6 @@
         function initApp() {
             if (appInitialized) return;
             appInitialized = true;
-            loadGameData();
             showScreen('startScreen');
             setSecretTechnique();
             
@@ -494,7 +458,6 @@
         }
 
         document.addEventListener('DOMContentLoaded', () => {
-            loadGameData();
             playerCharacter.innerHTML = `<img src="${characterImages.player}" class="character-img" alt="Player Character">`;
             document.querySelectorAll('#selectOpponentScreen .monster-container').forEach(container => {
                 const card = container.closest('.opponent-card');
@@ -507,7 +470,6 @@
             intensitySlider.addEventListener('input', (event) => {
                 intensityValue.textContent = event.target.value;
             });
-            renderGarden();
         });
         
         function safelyStopMusic() {
@@ -520,9 +482,7 @@
         function showScreen(screenId) {
             document.querySelectorAll('.screen').forEach(screen => screen.classList.add('hidden'));
             document.getElementById(screenId).classList.remove('hidden');
-            if (screenId === 'gardenScreen') {
-                renderGarden();
-            }
+
             if (screenId !== 'arenaScreen') {
                 safelyStopMusic();
             }
@@ -539,7 +499,6 @@
             document.querySelectorAll('#moveList button').forEach(btn => btn.classList.remove('secret-technique-glow'));
             document.getElementById(`tech-${secretTechnique.id}`)?.classList.add('secret-technique-glow');
             
-            isPerfectRoundPossible = true;
             stressLevel = 100; composureLevel = 100;
             updateBars();
             showScreen('arenaScreen');
@@ -571,18 +530,8 @@
         function triggerFinishingMove() {
             safelyStopMusic();
             playSound('win');
-            document.getElementById('moveList').style.pointerEvents = 'none';
             const monsterImg = monsterCharacter.querySelector('.character-img');
             const playerImg = playerCharacter.querySelector('.character-img');
-
-            if (isPerfectRoundPossible) {
-                perfectRoundBanner.style.display = 'block';
-                gameData.garden[currentOpponent].golden = true;
-            } else {
-                perfectRoundBanner.style.display = 'none';
-            }
-            gameData.garden[currentOpponent].unlocked = true;
-            saveGameData();
 
             monsterImg.src = characterImages[`${currentOpponent}-calm`];
             playerImg.src = characterImages['player-victory'];
@@ -592,7 +541,6 @@
             setTimeout(() => {
                 document.getElementById('tamedMonsterContainer').innerHTML = `<img src="${characterImages[currentOpponent + '-calm']}" class="character-img" alt="${opponentNames[currentOpponent]} Tamed">`;
                 showScreen('victoryScreen');
-                document.getElementById('moveList').style.pointerEvents = 'auto';
             }, 2500);
         }
 
@@ -602,10 +550,6 @@
             stressBar.style.width = `${stressLevel}%`;
             composureBar.style.width = `${composureLevel}%`;
             
-            if (composureLevel < 90) {
-                isPerfectRoundPossible = false;
-            }
-
             if (isFinalMove && stressLevel <= 0) {
                 triggerFinishingMove();
             }
@@ -666,7 +610,9 @@
         function showTechnique(techniqueId) {
             let content = '';
             techniqueModal.classList.remove('hidden');
-            if(battleMusic) battleMusic.volume = 0.1;
+            if (battleMusic && !battleMusic.paused) {
+                battleMusic.pause();
+            }
 
             switch (techniqueId) {
                 case 'zenBreath':
@@ -747,7 +693,9 @@
         }
 
         function closeModal() {
-            if (battleMusic) battleMusic.volume = 0.5;
+            if (battleMusic && battleMusic.paused && currentScreen === 'arenaScreen') {
+                battleMusic.play().catch(e => console.error("Error resuming music:", e));
+            }
             techniqueModal.classList.add('hidden');
             modalContent.innerHTML = '';
         }
